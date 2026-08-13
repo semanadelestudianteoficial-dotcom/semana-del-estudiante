@@ -1,10 +1,12 @@
 import { supabase } from "@/lib/supabase";
+import ClasificacionAnimada from "./ClasificacionAnimada";
 
 export default async function Home() {
   const { data: equipos, error } = await supabase
-    .from("equipos")
-    .select("id, nombre, color_hex, orden")
-    .order("orden");
+  .from("clasificacion_general")
+  .select("equipo_id, nombre, color_hex, orden, puntos_totales")
+  .order("puntos_totales", { ascending: false })
+  .order("orden", { ascending: true });
 
   if (error) {
     return (
@@ -36,30 +38,8 @@ export default async function Home() {
           <h2 className="mb-4 text-sm font-bold uppercase tracking-wide">
             Equipos
           </h2>
-
-          <div className="space-y-3">
-            {equipos?.map((equipo) => (
-              <div
-                key={equipo.id}
-                className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ backgroundColor: equipo.color_hex }}
-                  />
-
-                  <span className="font-bold">
-                    {equipo.nombre}
-                  </span>
-                </div>
-
-                <span className="text-xs font-semibold text-zinc-400">
-                  #{equipo.orden}
-                </span>
-              </div>
-            ))}
-          </div>
+          
+<ClasificacionAnimada equipos={equipos ?? []} />
         </section>
       </div>
     </main>
