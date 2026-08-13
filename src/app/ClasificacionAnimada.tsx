@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 type Equipo = {
   equipo_id: number;
@@ -9,48 +10,72 @@ type Equipo = {
   puntos_totales: number;
 };
 
+type ClasificacionGuardada = {
+  id: number;
+  puntos: number;
+}[];
+
+const CLAVE = "clasificacion_animacion_v2";
+
 export default function ClasificacionAnimada({
   equipos,
 }: {
   equipos: Equipo[];
 }) {
-  const [offsets, setOffsets] = useState<Record<number, number>>({});
+  const [lista, setLista] = useState<Equipo[]>(equipos);
+
   const [cambios, setCambios] = useState<
     Record<number, "subio" | "bajo">
   >({});
-  const [animar, setAnimar] = useState(false);
 
   useEffect(() => {
-    const ordenActual = equipos.map((e) => e.equipo_id);
+    const actual: ClasificacionGuardada = equipos.map((equipo) => ({
+      id: equipo.equipo_id,
+      puntos: equipo.puntos_totales,
+    }));
 
-    const guardado = localStorage.getItem("orden_clasificacion");
+    const versionActual = JSON.stringify(actual);
+    const guardada = localStorage.getItem(CLAVE);
 
-    if (!guardado) {
-      localStorage.setItem(
-        "orden_clasificacion",
-        JSON.stringify(ordenActual)
-      );
+    // Primera visita de este dispositivo:
+    // mostramos directamente la clasificación actual.
+    if (!guardada) {
+      setLista(equipos);
+      localStorage.setItem(CLAVE, versionActual);
       return;
     }
 
-    let ordenAnterior: number[];
+    let anterior: ClasificacionGuardada;
 
     try {
-      ordenAnterior = JSON.parse(guardado);
+      anterior = JSON.parse(guardada);
     } catch {
-      localStorage.setItem(
-        "orden_clasificacion",
-        JSON.stringify(ordenActual)
-      );
+      setLista(equipos);
+      localStorage.setItem(CLAVE, versionActual);
       return;
     }
 
-    const cambio =
+    const ordenAnterior = anterior.map((equipo) => equipo.id);
+    const ordenActual = equipos.map((equipo) => equipo.equipo_id);
+
+    const cambioDeOrden =
       JSON.stringify(ordenAnterior) !== JSON.stringify(ordenActual);
 
-    if (!cambio) return;
+    // Cambiaron puntos pero nadie cambió de puesto.
+    if (!cambioDeOrden) {
+      setLista(equipos);
+      localStorage.setItem(CLAVE, versionActual);
+      setCambios({});
+      return;
+    }
 
-    const nuevosOffsets: Record<number, number> = {};
+    // Construimos realmente la clasificación anterior.
+    const listaAnterior = ordenAnterior
+      .map((id) =>
+        equipos.find((equipo) => equipo.equipo_id === id)
+      )
+      .filter(Boolean) as Equipo[];
+
     const nuevosCambios: Record<number, "subio" | "bajo"> = {};
 
     equipos.forEach((equipo, posicionNueva) => {
@@ -60,71 +85,63 @@ export default function ClasificacionAnimada({
 
       if (posicionAnterior === -1) return;
 
-      const diferencia = posicionAnterior - posicionNueva;
-
-      // Aproximadamente altura de tarjeta + separación
-      nuevosOffsets[equipo.equipo_id] = diferencia * 69;
-
-      if (diferencia > 0) {
+      if (posicionNueva < posicionAnterior) {
         nuevosCambios[equipo.equipo_id] = "subio";
       }
 
-      if (diferencia < 0) {
+      if (posicionNueva > posicionAnterior) {
         nuevosCambios[equipo.equipo_id] = "bajo";
       }
     });
 
-    setOffsets(nuevosOffsets);
+    // Primero queda físicamente en el orden anterior.
+    setLista(listaAnterior);
     setCambios(nuevosCambios);
-    setAnimar(false);
 
-    // Damos tiempo real al navegador para dibujar
-    // las tarjetas en sus posiciones anteriores.
-    const inicio = setTimeout(() => {
-      setAnimar(true);
-    }, 400);
+    // Después pasa realmente al orden nuevo.
+    const moverTimer = setTimeout(() => {
+      setLista(equipos);
+    }, 700);
 
-    const limpiar = setTimeout(() => {
+    // IMPORTANTE:
+    // recién después de la animación marcamos esta clasificación
+    // como "ya vista" por este dispositivo.
+    const finalizarTimer = setTimeout(() => {
+      localStorage.setItem(CLAVE, versionActual);
       setCambios({});
-      setOffsets({});
-    }, 2600);
-
-    localStorage.setItem(
-      "orden_clasificacion",
-      JSON.stringify(ordenActual)
-    );
+    }, 2700);
 
     return () => {
-      clearTimeout(inicio);
-      clearTimeout(limpiar);
+      clearTimeout(moverTimer);
+      clearTimeout(finalizarTimer);
     };
   }, [equipos]);
 
   return (
     <div className="space-y-3">
-      {equipos.map((equipo, index) => {
-        const offset = offsets[equipo.equipo_id] ?? 0;
+      {lista.map((equipo, index) => {
         const cambio = cambios[equipo.equipo_id];
 
         return (
-          <div
+          <motion.div
+            layout
             key={equipo.equipo_id}
-            style={{
-              transform:
-                animar || offset === 0
-                  ? "translateY(0px)"
-                  : `translateY(${offset}px)`,
-              transition:
-                "transform 1.3s cubic-bezier(0.22, 1, 0.36, 1)",
-              position: "relative",
-              zIndex: offset !== 0 ? 10 : 1,
+            transition={{
+              layout: {
+                duration: 1.4,
+                ease: [0.22, 1, 0.36, 1],
+              },
             }}
-            className="flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm"
+            className={`flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ${
+              index === 0 ? "ring-2 ring-zinc-900/10" : ""
+            }`}
           >
             <div className="flex items-center gap-3">
-              <span className="w-7 font-black">
-                {index + 1}°
-              </span>
+              <div className="flex w-12 items-center gap-1 font-black">
+                <span>{index + 1}°</span>
+
+                {index === 0 && <span>👑</span>}
+              </div>
 
               <span
                 className="h-4 w-4 rounded-full"
@@ -152,7 +169,7 @@ export default function ClasificacionAnimada({
               </div>
             </div>
 
-            <div>
+            <div className="text-right">
               <span className="font-black">
                 {equipo.puntos_totales}
               </span>
@@ -161,7 +178,7 @@ export default function ClasificacionAnimada({
                 pts
               </span>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
