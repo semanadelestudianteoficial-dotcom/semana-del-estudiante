@@ -4,6 +4,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+const ADMIN_EMAIL = "semanadelestudiante.oficial@gmail.com";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -16,13 +18,28 @@ export default function LoginPage() {
     setCargando(true);
     setMensaje("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const correo = email.trim().toLowerCase();
+
+    if (correo !== ADMIN_EMAIL) {
+      setMensaje("No tenés autorización para ingresar.");
+      setCargando(false);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: correo,
       password,
     });
 
-    if (error) {
+    if (error || !data.user) {
       setMensaje("Correo o contraseña incorrectos.");
+      setCargando(false);
+      return;
+    }
+
+    if (data.user.email?.toLowerCase() !== ADMIN_EMAIL) {
+      await supabase.auth.signOut();
+      setMensaje("No tenés autorización para ingresar.");
       setCargando(false);
       return;
     }

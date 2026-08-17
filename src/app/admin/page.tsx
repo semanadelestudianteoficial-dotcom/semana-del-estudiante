@@ -1,3 +1,4 @@
+import CerrarSesion from "./CerrarSesion";
 import { supabase } from "@/lib/supabase";
 
 export default async function AdminPage() {
@@ -10,19 +11,71 @@ export default async function AdminPage() {
     <main className="min-h-screen bg-[#f7f7f5] px-5 py-8 text-zinc-900">
       <div className="mx-auto max-w-2xl">
         <header className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
-            Semana del Estudiante
-          </p>
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
+        Semana del Estudiante
+      </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight">
-            Administración
-          </h1>
+      <h1 className="mt-2 text-3xl font-black tracking-tight">
+        Administración
+      </h1>
 
-          <p className="mt-2 text-sm text-zinc-500">
-            Gestión de jornadas, juegos y resultados.
-          </p>
-        </header>
+      <p className="mt-2 text-sm text-zinc-500">
+        Gestión de jornadas, juegos y resultados.
+      </p>
+    </div>
 
+    <CerrarSesion />
+  </div>
+</header>
+
+        {/* ACCESOS RÁPIDOS */}
+        <section className="mb-8 grid gap-4 sm:grid-cols-2">
+          <a
+            href="/admin/votacion"
+            className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+              Miss & Mister
+            </p>
+
+            <h2 className="mt-2 text-xl font-black">
+              Control de votación
+            </h2>
+
+            <p className="mt-2 text-sm text-zinc-500">
+              Abrir o cerrar la votación general.
+            </p>
+
+            <div className="mt-5 text-sm font-black">
+              Gestionar →
+            </div>
+          </a>
+
+          <a
+            href="/admin/resultados"
+            className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+              Miss & Mister
+            </p>
+
+            <h2 className="mt-2 text-xl font-black">
+              Resultados
+            </h2>
+
+            <p className="mt-2 text-sm text-zinc-500">
+              Ver participación, posiciones y votos.
+            </p>
+
+            <div className="mt-5 text-sm font-black">
+              Ver resultados →
+            </div>
+          </a>
+        </section>
+
+        {/* JORNADAS */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-wide">
@@ -61,11 +114,11 @@ export default async function AdminPage() {
                 </div>
 
                 <a
-  href={`/admin/jornada/${jornada.id}`}
-  className="mt-5 block w-full rounded-2xl bg-zinc-900 px-4 py-3 text-center text-sm font-bold text-white"
->
-  Ver actividades
-</a>
+                  href={`/admin/jornada/${jornada.id}`}
+                  className="mt-5 block w-full rounded-2xl bg-zinc-900 px-4 py-3 text-center text-sm font-bold text-white"
+                >
+                  Ver actividades
+                </a>
               </div>
             ))}
           </div>
