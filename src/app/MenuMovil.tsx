@@ -1,20 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function MenuMovil() {
   const [abierto, setAbierto] = useState(false);
-useEffect(() => {
-  if (abierto) {
-    document.body.style.overflow = "hidden";
-  } else {
-    document.body.style.overflow = "";
-  }
 
-  return () => {
-    document.body.style.overflow = "";
-  };
-}, [abierto]);
   return (
     <>
       {/* BOTÓN MENÚ */}
@@ -22,7 +12,7 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="fixed right-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950 text-xl text-white shadow-lg"
+        className="fixed right-4 top-6 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950 text-xl text-white shadow-lg"
         aria-label="Abrir menú"
       >
         <span className="leading-none">☰</span>
