@@ -467,61 +467,53 @@ async function eliminarFoto(foto: FotoPublicada) {
       </p>
     </div>
   ) : (
-    <div className="space-y-8">
-  {jornadas.map((jornada) => {
-    const fotosJornada = fotosPublicadas.filter(
-      (foto) => foto.jornada_id === jornada.id
-    );
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {fotosPublicadas.map((foto) => {
+        const jornada = jornadas.find(
+          (item) => Number(item.id) === Number(foto.jornada_id)
+        );
 
-    if (fotosJornada.length === 0) return null;
-
-    return (
-      <div key={jornada.id}>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-black text-zinc-800">
-              Día {jornada.numero}
-            </p>
-
-            <p className="text-xs font-semibold text-zinc-400">
-              {jornada.nombre}
-            </p>
-          </div>
-
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-500 shadow-sm">
-            {fotosJornada.length}{" "}
-            {fotosJornada.length === 1 ? "foto" : "fotos"}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {fotosJornada.map((foto) => (
-            <div
-              key={foto.id}
-              className="relative aspect-square overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
-            >
+        return (
+          <div
+            key={foto.id}
+            className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
+          >
+            <div className="relative aspect-square">
               <img
                 src={foto.foto_url}
-                alt={`Foto del Día ${jornada.numero}`}
+                alt="Foto publicada"
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
+
               <button
-  type="button"
-  onClick={() => eliminarFoto(foto)}
-  disabled={eliminando === foto.id}
-  className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-sm text-white shadow-lg transition hover:bg-red-700 disabled:opacity-50"
-  aria-label="Eliminar foto"
->
-  {eliminando === foto.id ? "…" : "🗑"}
-</button>
+                type="button"
+                onClick={() => eliminarFoto(foto)}
+                disabled={eliminando === foto.id}
+                className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-sm text-white shadow-lg transition hover:bg-red-700 disabled:opacity-50"
+                aria-label="Eliminar foto"
+              >
+                {eliminando === foto.id ? "…" : "🗑"}
+              </button>
             </div>
-          ))}
-        </div>
-      </div>
-    );
-  })}
-</div>
+
+            <div className="px-3 py-2">
+              <p className="text-xs font-black text-zinc-700">
+                {jornada
+                  ? `Día ${jornada.numero}`
+                  : "Sin jornada asignada"}
+              </p>
+
+              {jornada && (
+                <p className="mt-0.5 truncate text-[10px] font-semibold text-zinc-400">
+                  {jornada.nombre}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   )}
 </section>
       </div>
