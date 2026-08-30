@@ -74,6 +74,12 @@ export default function AdminVotacionPage() {
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-5 py-8 text-zinc-900">
       <div className="mx-auto max-w-2xl">
+        <a
+  href="/admin"
+  className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+>
+  ← Volver al panel
+</a>
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
           Semana del Estudiante 2026
         </p>

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import JuegoControles from "./JuegoControles";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,66 +23,94 @@ export default async function JornadaAdminPage({ params }: Props) {
     .order("id");
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] px-5 py-8 text-zinc-900">
+    <main className="min-h-screen bg-[#f7f7f5] px-4 py-6 text-zinc-900 md:px-5 md:py-8">
       <div className="mx-auto max-w-2xl">
+
+        {/* VOLVER */}
         <a
           href="/admin"
-          className="text-sm font-semibold text-zinc-500"
+          className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black text-zinc-600 shadow-sm transition hover:bg-zinc-50"
         >
-          ← Volver
+          ← Volver al panel
         </a>
 
-        <header className="mt-6 mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
+        {/* ENCABEZADO */}
+        <header className="mb-6 mt-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
             Día {jornada?.numero}
           </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight">
+          <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">
             {jornada?.nombre}
           </h1>
 
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-1 text-xs text-zinc-500">
             {jornada?.fecha}
           </p>
         </header>
 
+        {/* ACTIVIDADES */}
         <section>
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide">
-            Actividades
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+              Actividades
+            </h2>
 
-          <div className="space-y-3">
-            {juegos?.map((juego) => (
-              <div
-                key={juego.id}
-                className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-black">
-                      {juego.nombre}
-                    </h3>
+            <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[10px] font-black text-white">
+              {juegos?.length ?? 0}
+            </span>
+          </div>
 
-                    <p className="mt-1 text-xs font-semibold text-zinc-400">
-                      {juego.es_especial
-                        ? "Puntaje especial"
-                        : `${juego.puntos_primero} / ${juego.puntos_segundo} / ${juego.puntos_tercero} / ${juego.puntos_cuarto} pts`}
-                    </p>
+          <div className="space-y-2.5">
+            {juegos?.map((juego) => {
+              const sinPuntaje =
+                juego.nombre === "Presentación de Caciques y Hechiceras";
+
+              const resultadoAutomatico =
+                juego.nombre === "Presentación Miss y Míster";
+
+              return (
+                <div
+                  key={juego.id}
+                  className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                >
+                  {/* NOMBRE + CONTROLES */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-black leading-tight">
+                        {juego.nombre}
+                      </h3>
+
+                      <p className="mt-1 text-[11px] font-semibold text-zinc-400">
+                        {sinPuntaje
+                          ? "Actividad sin puntaje"
+                          : resultadoAutomatico
+                          ? "Resultado automático por votación"
+                          : juego.es_especial
+                          ? "Puntaje especial"
+                          : `${juego.puntos_primero} / ${juego.puntos_segundo} / ${juego.puntos_tercero} / ${juego.puntos_cuarto} pts`}
+                      </p>
+                    </div>
+
+                    <JuegoControles
+                      juegoId={juego.id}
+                      estadoInicial={juego.estado}
+                      jornadaInicial={Number(id)}
+                    />
                   </div>
 
-                  <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
-                    {juego.estado}
-                  </span>
+                  {/* CARGAR RESULTADO */}
+                  {!sinPuntaje && !resultadoAutomatico && (
+                    <a
+                      href={`/admin/resultados/${juego.id}`}
+                      className="mt-3 block w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-xs font-black text-white transition active:scale-[0.98]"
+                    >
+                      Cargar resultado
+                    </a>
+                  )}
                 </div>
-
-                <a
-  href={`/admin/resultados/${juego.id}`}
-  className="mt-5 block w-full rounded-2xl bg-zinc-900 px-4 py-3 text-center text-sm font-bold text-white"
->
-  Cargar resultado
-</a>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>

@@ -37,8 +37,6 @@ export default function ClasificacionAnimada({
     const versionActual = JSON.stringify(actual);
     const guardada = localStorage.getItem(CLAVE);
 
-    // Primera visita de este dispositivo:
-    // mostramos directamente la clasificación actual.
     if (!guardada) {
       setLista(equipos);
       localStorage.setItem(CLAVE, versionActual);
@@ -61,7 +59,6 @@ export default function ClasificacionAnimada({
     const cambioDeOrden =
       JSON.stringify(ordenAnterior) !== JSON.stringify(ordenActual);
 
-    // Cambiaron puntos pero nadie cambió de puesto.
     if (!cambioDeOrden) {
       setLista(equipos);
       localStorage.setItem(CLAVE, versionActual);
@@ -69,7 +66,6 @@ export default function ClasificacionAnimada({
       return;
     }
 
-    // Construimos realmente la clasificación anterior.
     const listaAnterior = ordenAnterior
       .map((id) =>
         equipos.find((equipo) => equipo.equipo_id === id)
@@ -94,18 +90,13 @@ export default function ClasificacionAnimada({
       }
     });
 
-    // Primero queda físicamente en el orden anterior.
     setLista(listaAnterior);
     setCambios(nuevosCambios);
 
-    // Después pasa realmente al orden nuevo.
     const moverTimer = setTimeout(() => {
       setLista(equipos);
     }, 700);
 
-    // IMPORTANTE:
-    // recién después de la animación marcamos esta clasificación
-    // como "ya vista" por este dispositivo.
     const finalizarTimer = setTimeout(() => {
       localStorage.setItem(CLAVE, versionActual);
       setCambios({});
@@ -118,7 +109,7 @@ export default function ClasificacionAnimada({
   }, [equipos]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5 md:space-y-3">
       {lista.map((equipo, index) => {
         const cambio = cambios[equipo.equipo_id];
 
@@ -132,51 +123,72 @@ export default function ClasificacionAnimada({
                 ease: [0.22, 1, 0.36, 1],
               },
             }}
-            className={`flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm ${
-              index === 0 ? "ring-2 ring-zinc-900/10" : ""
-            }`}
+            className="relative overflow-hidden rounded-[1.55rem] border border-white/80 bg-white/55 px-3 py-2.5 md:px-4 md:py-4 shadow-[0_8px_24px_rgba(31,41,55,0.09)] backdrop-blur-xl"
           >
-            <div className="flex items-center gap-3">
-              <div className="flex w-12 items-center gap-1 font-black">
-                <span>{index + 1}°</span>
+            <div
+              className="absolute bottom-0 left-0 top-0 w-1.5"
+              style={{
+                backgroundColor: equipo.color_hex,
+              }}
+            />
 
-                {index === 0 && <span>👑</span>}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-2 md:gap-3">
+                <div className="flex w-10 shrink-0 items-center gap-1 text-base font-black md:w-12 md:text-lg">
+                  <span>
+  {lista.findIndex(
+    (e) => e.puntos_totales === equipo.puntos_totales
+  ) + 1}
+  °
+</span>
+
+                  {index === 0 &&
+  lista.filter(
+    (e) => e.puntos_totales === equipo.puntos_totales
+  ).length === 1 && (
+    <span className="text-sm md:text-base">
+      👑
+    </span>
+  )}
+                </div>
+
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full shadow-sm md:h-4 md:w-4"
+                  style={{
+                    backgroundColor: equipo.color_hex,
+                  }}
+                />
+
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center">
+                    <span className="truncate text-sm font-black md:text-base">
+                      {equipo.nombre}
+                    </span>
+
+                    {cambio === "subio" && (
+                      <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-black text-green-700 md:ml-2 md:px-2 md:py-1 md:text-[10px]">
+                        ↑ Subió
+                      </span>
+                    )}
+
+                    {cambio === "bajo" && (
+                      <span className="ml-1.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-black text-red-600 md:ml-2 md:px-2 md:py-1 md:text-[10px]">
+                        ↓ Bajó
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <span
-                className="h-4 w-4 rounded-full"
-                style={{
-                  backgroundColor: equipo.color_hex,
-                }}
-              />
-
-              <div className="flex items-center">
-                <span className="font-bold">
-                  {equipo.nombre}
+              <div className="shrink-0 text-right">
+                <span className="text-lg font-black md:text-xl">
+                  {equipo.puntos_totales}
                 </span>
 
-                {cambio === "subio" && (
-                  <span className="ml-2 text-xs font-bold text-green-600">
-                    ↑ subió
-                  </span>
-                )}
-
-                {cambio === "bajo" && (
-                  <span className="ml-2 text-xs font-bold text-red-500">
-                    ↓ bajó
-                  </span>
-                )}
+                <span className="ml-1 text-xs font-bold text-zinc-500">
+                  pts
+                </span>
               </div>
-            </div>
-
-            <div className="text-right">
-              <span className="font-black">
-                {equipo.puntos_totales}
-              </span>
-
-              <span className="ml-1 text-xs font-semibold text-zinc-400">
-                pts
-              </span>
             </div>
           </motion.div>
         );
