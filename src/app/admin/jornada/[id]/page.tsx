@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import JuegoControles from "./JuegoControles";
+import HoraJuego from "./HoraJuego";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -17,15 +18,15 @@ export default async function JornadaAdminPage({ params }: Props) {
   const { data: juegos } = await supabase
     .from("juegos")
     .select(
-      "id, nombre, estado, puntos_primero, puntos_segundo, puntos_tercero, puntos_cuarto, es_especial"
+      "id, nombre, hora, estado, puntos_primero, puntos_segundo, puntos_tercero, puntos_cuarto, es_especial"
     )
     .eq("jornada_id", id)
+    .order("hora", { ascending: true, nullsFirst: false })
     .order("id");
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-4 py-6 text-zinc-900 md:px-5 md:py-8">
       <div className="mx-auto max-w-2xl">
-        {/* VOLVER */}
         <a
           href="/admin"
           className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black text-zinc-600 shadow-sm transition hover:bg-zinc-50"
@@ -33,7 +34,6 @@ export default async function JornadaAdminPage({ params }: Props) {
           ← Volver al panel
         </a>
 
-        {/* ENCABEZADO */}
         <header className="mb-6 mt-5">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
             Día {jornada?.numero}
@@ -48,7 +48,6 @@ export default async function JornadaAdminPage({ params }: Props) {
           </p>
         </header>
 
-        {/* ACTIVIDADES */}
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wide text-zinc-500">
@@ -76,7 +75,6 @@ export default async function JornadaAdminPage({ params }: Props) {
                   key={juego.id}
                   className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
                 >
-                  {/* NOMBRE + CONTROLES */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <h3 className="text-base font-black leading-tight">
@@ -103,7 +101,11 @@ export default async function JornadaAdminPage({ params }: Props) {
                     />
                   </div>
 
-                  {/* CARGAR RESULTADO */}
+                  <HoraJuego
+                    juegoId={juego.id}
+                    horaInicial={juego.hora}
+                  />
+
                   {!sinPuntaje && !resultadoAutomatico && (
                     <a
                       href={`/admin/resultados/${juego.id}`}

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import ClasificacionAnimada from "./ClasificacionAnimada";
 import MenuMovil from "./MenuMovil";
+import BienvenidaInicial from "./BienvenidaInicial";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +25,64 @@ export default async function Home() {
     "cantidad_votantes_2026"
   );
 
+  /*
+   * JORNADA DEL DÍA
+   * Usamos la fecha de Argentina para evitar diferencias
+   * entre UTC/Vercel y la fecha real del evento.
+   */
+  const fechaArgentina = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  const { data: jornadaActual } = await supabase
+    .from("jornadas")
+    .select("id, numero, nombre, fecha, estado")
+    .eq("fecha", fechaArgentina)
+    .maybeSingle();
+
+  let actividadActual: any = null;
+  let proximaActividad: any = null;
+
+  if (jornadaActual) {
+    const { data: juegosHoy } = await supabase
+      .from("juegos")
+      .select("id, nombre, hora, estado")
+      .eq("jornada_id", jornadaActual.id)
+      .order("hora", { ascending: true, nullsFirst: false })
+      .order("id");
+
+    actividadActual =
+      (juegosHoy ?? []).find(
+        (juego) => juego.estado === "en_curso"
+      ) ?? null;
+
+    proximaActividad =
+      (juegosHoy ?? []).find(
+        (juego) => juego.estado === "pendiente"
+      ) ?? null;
+  }
+
+  const actividadMostrada =
+    actividadActual ?? proximaActividad;
+
+  const estaEnCurso = Boolean(actividadActual);
+
+  function formatearHora(hora: string | null) {
+    if (!hora) return null;
+
+    return hora.slice(0, 5);
+  }
+
   if (error) {
     return (
       <main className="min-h-screen bg-zinc-950 p-6 text-white">
         <p>Error al cargar equipos.</p>
-        <p className="mt-2 text-sm text-zinc-400">{error.message}</p>
+        <p className="mt-2 text-sm text-zinc-400">
+          {error.message}
+        </p>
       </main>
     );
   }
@@ -37,8 +91,11 @@ export default async function Home() {
 
   return (
     <main className="relative min-h-[100dvh] overflow-hidden bg-[#eef1f7] text-zinc-950 md:min-h-screen">
+      <BienvenidaInicial />
+
       <MenuMovil />
-      {/* Fondo */}
+
+      {/* FONDO */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -left-28 -top-24 h-80 w-80 rounded-full bg-green-400/35 blur-[90px]" />
         <div className="absolute right-[-130px] top-24 h-96 w-96 rounded-full bg-blue-500/35 blur-[110px]" />
@@ -80,6 +137,65 @@ export default async function Home() {
             <div className="h-2 rounded-full bg-red-500" />
           </div>
         </header>
+
+        {/* JORNADA ACTUAL */}
+        {jornadaActual && (
+          <section className="mt-4">
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/60 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.10)] backdrop-blur-xl">
+              <div className="absolute -right-16 -top-20 h-40 w-40 rounded-full bg-blue-400/15 blur-[50px]" />
+
+              <div className="relative">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">
+                    Hoy · Día {jornadaActual.numero}
+                  </p>
+
+                  <span className="rounded-full bg-zinc-950 px-3 py-1.5 text-[10px] font-black text-white">
+                    SDE 2026
+                  </span>
+                </div>
+
+                <h2 className="mt-2 text-xl font-black tracking-tight">
+                  {jornadaActual.nombre}
+                </h2>
+
+                {actividadMostrada ? (
+                  <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl bg-white/70 p-4">
+                    <div className="min-w-0">
+                      <p
+                        className={`text-[10px] font-black uppercase tracking-[0.20em] ${
+                          estaEnCurso
+                            ? "text-red-600"
+                            : "text-zinc-500"
+                        }`}
+                      >
+                        {estaEnCurso
+                          ? "🔴 Ahora"
+                          : "Próxima actividad"}
+                      </p>
+
+                      <p className="mt-1 truncate text-base font-black">
+                        {actividadMostrada.nombre}
+                      </p>
+                    </div>
+
+                    {formatearHora(actividadMostrada.hora) && (
+                      <div className="shrink-0 rounded-xl bg-zinc-950 px-3 py-2 text-sm font-black text-white">
+                        {formatearHora(actividadMostrada.hora)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl bg-white/70 p-4">
+                    <p className="text-sm font-bold text-zinc-600">
+                      ✓ Todas las actividades del día finalizaron.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* CLASIFICACIÓN */}
         <section className="mt-4 md:mt-8">
@@ -125,7 +241,9 @@ export default async function Home() {
               <div>
                 <p
                   className={`text-xs font-black uppercase tracking-[0.24em] ${
-                    votacionAbierta ? "text-zinc-400" : "text-zinc-500"
+                    votacionAbierta
+                      ? "text-zinc-400"
+                      : "text-zinc-500"
                   }`}
                 >
                   Miss & Mister
@@ -139,7 +257,9 @@ export default async function Home() {
 
                 <p
                   className={`mt-3 max-w-[280px] text-sm leading-6 ${
-                    votacionAbierta ? "text-zinc-300" : "text-zinc-600"
+                    votacionAbierta
+                      ? "text-zinc-300"
+                      : "text-zinc-600"
                   }`}
                 >
                   {votacionAbierta
@@ -161,6 +281,7 @@ export default async function Home() {
               }`}
             >
               👥
+
               <span>
                 {totalVotantes}{" "}
                 {totalVotantes === 1
