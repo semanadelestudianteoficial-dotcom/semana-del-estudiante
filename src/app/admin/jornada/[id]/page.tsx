@@ -25,7 +25,6 @@ export default async function JornadaAdminPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-4 py-6 text-zinc-900 md:px-5 md:py-8">
       <div className="mx-auto max-w-2xl">
-
         {/* VOLVER */}
         <a
           href="/admin"
@@ -64,10 +63,13 @@ export default async function JornadaAdminPage({ params }: Props) {
           <div className="space-y-2.5">
             {juegos?.map((juego) => {
               const sinPuntaje =
-                juego.nombre === "Presentación de Caciques y Hechiceras";
+                juego.nombre === "Torre de Latas";
 
               const resultadoAutomatico =
-                juego.nombre === "Presentación Miss y Míster";
+                juego.nombre === "Miss y Mister";
+
+              const esColecta =
+                juego.nombre === "Colecta";
 
               return (
                 <div
@@ -86,6 +88,8 @@ export default async function JornadaAdminPage({ params }: Props) {
                           ? "Actividad sin puntaje"
                           : resultadoAutomatico
                           ? "Resultado automático por votación"
+                          : esColecta
+                          ? "1 kilo = 1 punto"
                           : juego.es_especial
                           ? "Puntaje especial"
                           : `${juego.puntos_primero} / ${juego.puntos_segundo} / ${juego.puntos_tercero} / ${juego.puntos_cuarto} pts`}
@@ -105,7 +109,9 @@ export default async function JornadaAdminPage({ params }: Props) {
                       href={`/admin/resultados/${juego.id}`}
                       className="mt-3 block w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-xs font-black text-white transition active:scale-[0.98]"
                     >
-                      Cargar resultado
+                      {esColecta
+                        ? "Cargar kilos"
+                        : "Cargar resultado"}
                     </a>
                   )}
                 </div>

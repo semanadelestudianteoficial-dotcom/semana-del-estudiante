@@ -248,7 +248,7 @@ export default function GaleriaPage() {
       {/* VISOR */}
       {fotoActual && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-3 backdrop-blur-md sm:p-8"
+          className="fixed right-4 top-10 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-950 text-xl text-white shadow-lg"
           onClick={cerrarFoto}
         >
 
