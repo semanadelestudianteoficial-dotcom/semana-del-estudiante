@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 export default function MenuMovil() {
@@ -12,7 +13,7 @@ export default function MenuMovil() {
         <button
           type="button"
           onClick={() => setAbierto(true)}
-         className="fixed bottom-6 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-2xl bg-zinc-950 text-xl text-white shadow-lg"
+          className="fixed bottom-6 left-1/2 z-40 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-2xl bg-zinc-950 text-xl text-white shadow-lg"
           aria-label="Abrir menú"
         >
           <span className="leading-none">☰</span>
@@ -161,11 +162,36 @@ export default function MenuMovil() {
             </div>
           </div>
 
+          {/* FIRMA MOR CREATIVE */}
+          <div className="mt-8 rounded-[1.5rem] border border-zinc-200 bg-zinc-950 p-5 text-center text-white shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-black">
+              <Image
+                src="/mor-creative.jpg"
+                alt="MOR. CREATIVE"
+                width={56}
+                height={56}
+                className="h-full w-full object-cover"
+              />
+            </div>
+
+            <p className="mt-4 text-[9px] font-black uppercase tracking-[0.22em] text-zinc-500">
+              Diseño y desarrollo
+            </p>
+
+            <p className="mt-1 text-sm font-black text-white">
+              Morán Facundo
+            </p>
+
+            <p className="mt-0.5 text-[10px] font-semibold tracking-[0.12em] text-zinc-400">
+              MOR. CREATIVE
+            </p>
+          </div>
+
           {/* ADMIN */}
           <a
             href="/admin"
             onClick={() => setAbierto(false)}
-            className="mt-8 flex items-center justify-center gap-2 pb-4 text-[10px] font-semibold tracking-wide text-zinc-300 transition hover:text-zinc-500"
+            className="mt-6 flex items-center justify-center gap-2 pb-4 text-[10px] font-semibold tracking-wide text-zinc-300 transition hover:text-zinc-500"
           >
             <span className="text-xs">⚙</span>
             Acceso administrativo
