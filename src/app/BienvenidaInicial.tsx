@@ -12,12 +12,18 @@ export default function BienvenidaInicial() {
 
     if (!yaVioBienvenida) {
       setVisible(true);
+    } else {
+      // Avisa que no hay una bienvenida pendiente.
+      window.dispatchEvent(new Event("sde-bienvenida-lista"));
     }
   }, []);
 
   function cerrarBienvenida() {
     localStorage.setItem(CLAVE_BIENVENIDA, "true");
     setVisible(false);
+
+    // Ahora sí permitimos que aparezca un aviso pendiente.
+    window.dispatchEvent(new Event("sde-bienvenida-lista"));
   }
 
   if (!visible) return null;
