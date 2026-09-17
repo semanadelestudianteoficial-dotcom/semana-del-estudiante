@@ -123,42 +123,85 @@ useEffect(() => {
   }
 
   async function enviarCodigo() {
-    if (segundosReenvio > 0) {
+  if (segundosReenvio > 0) {
+    setMensaje(
+      `Esperá ${formatearEspera(segundosReenvio)} antes de solicitar otro código.`
+    );
+    return;
+  }
+
+  setCargando(true);
+  setMensaje("");
+
+  try {
+    const emailLimpio = email.trim().toLowerCase();
+
+    // Primero comprobamos si este correo real ya participó.
+    // Esto también detecta variantes de Gmail con puntos y "+".
+    const { data: yaParticipo, error: errorComprobacion } =
+      await supabase.rpc("email_ya_participo", {
+        p_email: emailLimpio,
+      });
+
+    if (errorComprobacion) {
+      console.error(
+        "Error al comprobar participación:",
+        errorComprobacion
+      );
+
       setMensaje(
-        `Esperá ${formatearEspera(segundosReenvio)} antes de solicitar otro código.`
+        "No se pudo comprobar el correo. Intentá nuevamente."
       );
       return;
     }
 
-    setCargando(true);
-    setMensaje("");
+    if (yaParticipo) {
+      setMensaje(
+        "Este correo ya participó. Cada persona puede votar una sola vez."
+      );
+      return;
+    }
 
+    // Solamente enviamos el código si todavía no participó.
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: emailLimpio,
       options: {
-  shouldCreateUser: true,
-  emailRedirectTo: `${window.location.origin}/votar`,
-},
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/votar`,
+      },
     });
 
     if (error) {
+      console.error("Error al enviar código:", error);
       setMensaje("No se pudo enviar el código.");
-      setCargando(false);
       return;
     }
 
     const reenvioHasta =
       Date.now() + ESPERA_REENVIO_SEGUNDOS * 1000;
 
-    localStorage.setItem(CLAVE_REENVIO, String(reenvioHasta));
+    localStorage.setItem(
+      CLAVE_REENVIO,
+      String(reenvioHasta)
+    );
+
     setSegundosReenvio(ESPERA_REENVIO_SEGUNDOS);
 
     setMensaje(
       "Código solicitado ✓ Revisá tu bandeja de entrada y también Spam/Correo no deseado. Puede demorar unos minutos. No solicites otro código inmediatamente."
     );
+
     setCodigoEnviado(true);
+  } catch (error) {
+    console.error(error);
+
+    setMensaje(
+      "Ocurrió un problema. Intentá nuevamente."
+    );
+  } finally {
     setCargando(false);
   }
+}
 async function verificarCodigo() {
   setCargando(true);
   setMensaje("");
