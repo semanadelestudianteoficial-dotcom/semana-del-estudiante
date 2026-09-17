@@ -19,6 +19,10 @@ export default function VotarPage() {
   const [votoCompletado, setVotoCompletado] = useState(false);
   const [votacionAbierta, setVotacionAbierta] = useState<boolean | null>(null);
   const [cantidadVotantes, setCantidadVotantes] = useState(0);
+  const [segundosReenvio, setSegundosReenvio] = useState(0);
+
+  const CLAVE_REENVIO = "sde_otp_reenvio_hasta_v1";
+  const ESPERA_REENVIO_SEGUNDOS = 5 * 60;
 
   useEffect(() => {
   async function cargarCandidatos() {
@@ -83,7 +87,49 @@ useEffect(() => {
 
   cargarCantidadVotantes();
 }, []);
+  useEffect(() => {
+    function actualizarEsperaReenvio() {
+      const guardado = localStorage.getItem(CLAVE_REENVIO);
+
+      if (!guardado) {
+        setSegundosReenvio(0);
+        return;
+      }
+
+      const reenvioHasta = Number(guardado);
+      const restantes = Math.max(
+        0,
+        Math.ceil((reenvioHasta - Date.now()) / 1000)
+      );
+
+      setSegundosReenvio(restantes);
+
+      if (restantes === 0) {
+        localStorage.removeItem(CLAVE_REENVIO);
+      }
+    }
+
+    actualizarEsperaReenvio();
+
+    const intervalo = window.setInterval(actualizarEsperaReenvio, 1000);
+
+    return () => window.clearInterval(intervalo);
+  }, []);
+
+  function formatearEspera(segundos: number) {
+    const minutos = Math.floor(segundos / 60);
+    const resto = segundos % 60;
+    return `${minutos}:${resto.toString().padStart(2, "0")}`;
+  }
+
   async function enviarCodigo() {
+    if (segundosReenvio > 0) {
+      setMensaje(
+        `Esperá ${formatearEspera(segundosReenvio)} antes de solicitar otro código.`
+      );
+      return;
+    }
+
     setCargando(true);
     setMensaje("");
 
@@ -101,7 +147,15 @@ useEffect(() => {
       return;
     }
 
-    setMensaje("Código enviado. Revisá tu correo.");
+    const reenvioHasta =
+      Date.now() + ESPERA_REENVIO_SEGUNDOS * 1000;
+
+    localStorage.setItem(CLAVE_REENVIO, String(reenvioHasta));
+    setSegundosReenvio(ESPERA_REENVIO_SEGUNDOS);
+
+    setMensaje(
+      "Código solicitado ✓ Revisá tu bandeja de entrada y también Spam/Correo no deseado. Puede demorar unos minutos. No solicites otro código inmediatamente."
+    );
     setCodigoEnviado(true);
     setCargando(false);
   }
@@ -845,7 +899,7 @@ if (pasoVotacion === "mister") {
         <button
           type="button"
           onClick={enviarCodigo}
-          disabled={cargando || !email}
+          disabled={cargando || !email || segundosReenvio > 0}
           className={`w-full rounded-2xl px-4 py-4 text-sm font-black shadow-lg transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 ${
             codigoEnviado
               ? "mt-3 border border-zinc-200 bg-white/70 text-zinc-800"
@@ -854,6 +908,8 @@ if (pasoVotacion === "mister") {
         >
           {cargando
             ? "Enviando..."
+            : segundosReenvio > 0
+            ? `Reenviar en ${formatearEspera(segundosReenvio)}`
             : codigoEnviado
             ? "Reenviar código"
             : "Enviar código"}
