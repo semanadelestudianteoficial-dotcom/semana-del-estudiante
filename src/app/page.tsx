@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import ClasificacionAnimada from "./ClasificacionAnimada";
 import MenuMovil from "./MenuMovil";
 import BienvenidaInicial from "./BienvenidaInicial";
+import AvisoDormir from "./AvisoDormir";
 import AvisoImportante from "./AvisoImportante";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,7 @@ export default async function Home() {
   return (
     <main className="relative min-h-[100dvh] overflow-hidden bg-[#eef1f7] text-zinc-950 md:min-h-screen">
       <BienvenidaInicial />
+      <AvisoDormir />
       <AvisoImportante />
       <MenuMovil />
 
