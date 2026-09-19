@@ -1,11 +1,20 @@
 import CerrarSesion from "./CerrarSesion";
+import FinalizarSDE from "./FinalizarSDE";
 import { supabase } from "@/lib/supabase";
 
 export default async function AdminPage() {
+  // Obtener jornadas
   const { data: jornadas } = await supabase
     .from("jornadas")
     .select("id, numero, nombre, fecha, estado")
     .order("numero");
+
+  // Obtener estado de la SDE
+  const { data: configuracion } = await supabase
+    .from("configuracion_sde")
+    .select("finalizada")
+    .eq("id", 1)
+    .single();
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-5 py-8 text-zinc-900">
@@ -44,7 +53,8 @@ export default async function AdminPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Administrá la votación, los resultados y las fotos de los candidatos.
+              Administrá la votación, los resultados y las fotos de los
+              candidatos.
             </p>
           </div>
 
@@ -54,6 +64,7 @@ export default async function AdminPage() {
               className="flex min-h-[82px] flex-col items-center justify-center rounded-2xl bg-zinc-900 px-2 py-3 text-center text-white transition active:scale-95"
             >
               <span className="text-xl">🗳️</span>
+
               <span className="mt-1 text-xs font-black">
                 Control
               </span>
@@ -64,6 +75,7 @@ export default async function AdminPage() {
               className="flex min-h-[82px] flex-col items-center justify-center rounded-2xl bg-zinc-100 px-2 py-3 text-center text-zinc-900 transition active:scale-95"
             >
               <span className="text-xl">📊</span>
+
               <span className="mt-1 text-xs font-black">
                 Resultados
               </span>
@@ -74,6 +86,7 @@ export default async function AdminPage() {
               className="flex min-h-[82px] flex-col items-center justify-center rounded-2xl bg-zinc-100 px-2 py-3 text-center text-zinc-900 transition active:scale-95"
             >
               <span className="text-xl">📷</span>
+
               <span className="mt-1 text-xs font-black">
                 Candidatos
               </span>
@@ -105,6 +118,11 @@ export default async function AdminPage() {
           </div>
         </a>
 
+        {/* CIERRE DE LA SEMANA */}
+        <FinalizarSDE
+          finalizadaInicial={configuracion?.finalizada ?? false}
+        />
+
         {/* JORNADAS */}
         <section>
           <div className="mb-4 flex items-center justify-between">
@@ -126,6 +144,7 @@ export default async function AdminPage() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
+
                     <div className="flex items-center gap-2">
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
                         Día {jornada.numero}
@@ -143,6 +162,7 @@ export default async function AdminPage() {
                     <p className="mt-1 text-xs text-zinc-500">
                       {jornada.fecha ?? "Sin fecha"}
                     </p>
+
                   </div>
 
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-zinc-900 text-sm font-black text-white">
