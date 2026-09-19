@@ -24,38 +24,72 @@ export default function ResultadosVotacionPage() {
   const [cantidadVotantes, setCantidadVotantes] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [guardandoDesempate, setGuardandoDesempate] = useState<number | null>(
-    null
-  );
+
+  const [guardandoDesempate, setGuardandoDesempate] = useState<
+    number | null
+  >(null);
+
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    async function cargarResultados(mostrarCarga = false) {
-      if (mostrarCarga) setCargando(true);
+    let activo = true;
 
-      const { data: candidatos, error: candidatosError } = await supabase
-        .from("candidatos")
-        .select(
-          "id, nombre, categoria, equipo_id, desempate_orden"
-        )
-        .eq("edicion_id", 1)
-        .eq("activo", true);
+    async function cargarResultados(mostrarCarga = false) {
+      if (mostrarCarga && activo) {
+        setCargando(true);
+      }
+
+      const { data: candidatos, error: candidatosError } =
+        await supabase
+          .from("candidatos")
+          .select(
+            "id, nombre, categoria, equipo_id, desempate_orden"
+          )
+          .eq("edicion_id", 1)
+          .eq("activo", true);
 
       if (candidatosError) {
-        setMensaje(`Error candidatos: ${candidatosError.message}`);
-        setCargando(false);
+        if (activo) {
+          setMensaje(
+            `Error candidatos: ${candidatosError.message}`
+          );
+          setCargando(false);
+        }
         return;
       }
 
-      const { data: votos, error: votosError } = await supabase
-        .from("votos")
-        .select("candidato_id, user_id");
+      /*
+       * IMPORTANTE:
+       * Traemos TODOS los votos y hacemos el conteo acá.
+       * Así /admin/resultados no depende de un conteo viejo.
+       */
+      let votos: { candidato_id: number; user_id: string }[] = [];
+let desde = 0;
+const TAMANO_PAGINA = 1000;
 
-      if (votosError) {
-        setMensaje(`Error votos: ${votosError.message}`);
-        setCargando(false);
-        return;
-      }
+while (true) {
+  const { data: pagina, error: votosError } = await supabase
+    .from("votos")
+    .select("candidato_id, user_id")
+    .range(desde, desde + TAMANO_PAGINA - 1);
+
+  if (votosError) {
+    if (activo) {
+      setMensaje(`Error votos: ${votosError.message}`);
+      setCargando(false);
+    }
+    return;
+  }
+
+  const filas = pagina ?? [];
+  votos = [...votos, ...filas];
+
+  if (filas.length < TAMANO_PAGINA) {
+    break;
+  }
+
+  desde += TAMANO_PAGINA;
+}
 
       const conteo = new Map<number, number>();
 
@@ -66,31 +100,47 @@ export default function ResultadosVotacionPage() {
         );
       }
 
-      const lista: Resultado[] = (candidatos ?? []).map((candidato) => ({
-        candidato_id: candidato.id,
-        nombre: candidato.nombre,
-        categoria: candidato.categoria,
-        equipo_id: candidato.equipo_id,
-        votos: conteo.get(candidato.id) ?? 0,
-        desempate_orden: candidato.desempate_orden ?? null,
-      }));
-
-      const usuariosUnicos = new Set(
-        (votos ?? []).map((voto) => voto.user_id)
+      const lista: Resultado[] = (candidatos ?? []).map(
+        (candidato) => ({
+          candidato_id: candidato.id,
+          nombre: candidato.nombre,
+          categoria: candidato.categoria,
+          equipo_id: candidato.equipo_id,
+          votos: conteo.get(candidato.id) ?? 0,
+          desempate_orden:
+            candidato.desempate_orden ?? null,
+        })
       );
 
-      setCantidadVotantes(usuariosUnicos.size);
-      setResultados(lista);
-      setCargando(false);
+      /*
+       * Una persona puede tener voto de Miss y voto de Mister.
+       * Por eso contamos user_id únicos para mostrar
+       * "personas participaron".
+       */
+      const usuariosUnicos = new Set(
+        (votos ?? [])
+          .map((voto) => voto.user_id)
+          .filter(Boolean)
+      );
+
+      if (activo) {
+        setCantidadVotantes(usuariosUnicos.size);
+        setResultados(lista);
+        setMensaje("");
+        setCargando(false);
+      }
     }
 
     cargarResultados(true);
 
-    const intervalo = setInterval(() => {
-      cargarResultados();
+    const intervalo = window.setInterval(() => {
+      cargarResultados(false);
     }, 5000);
 
-    return () => clearInterval(intervalo);
+    return () => {
+      activo = false;
+      window.clearInterval(intervalo);
+    };
   }, []);
 
   function ordenarCategoria(lista: Resultado[]) {
@@ -174,7 +224,8 @@ export default function ResultadosVotacionPage() {
 
     if (totalVotos === 0) return false;
 
-    const gruposEmpatados = obtenerGruposEmpatados(lista);
+    const gruposEmpatados =
+      obtenerGruposEmpatados(lista);
 
     return gruposEmpatados.every((grupo) =>
       grupoDesempateResuelto(grupo)
@@ -258,6 +309,7 @@ export default function ResultadosVotacionPage() {
       setMensaje(
         `No se pudo guardar el desempate: ${error.message}`
       );
+
       setGuardandoDesempate(null);
       return;
     }
@@ -288,16 +340,18 @@ export default function ResultadosVotacionPage() {
 
     setGuardando(true);
 
-    const { data: juego, error: juegoError } = await supabase
-      .from("juegos")
-      .select("id")
-      .eq("nombre", "Miss y Mister")
-      .single();
+    const { data: juego, error: juegoError } =
+      await supabase
+        .from("juegos")
+        .select("id")
+        .eq("nombre", "Miss y Mister")
+        .single();
 
     if (juegoError || !juego) {
       setMensaje(
         "No se encontró el juego “Miss y Mister”."
       );
+
       setGuardando(false);
       return;
     }
@@ -330,6 +384,7 @@ export default function ResultadosVotacionPage() {
       setMensaje(
         `No se pudieron guardar los puntos: ${error.message}`
       );
+
       setGuardando(false);
       return;
     }
@@ -345,6 +400,7 @@ export default function ResultadosVotacionPage() {
     if (id === 1) return "Verde";
     if (id === 2) return "Amarillo";
     if (id === 3) return "Azul";
+
     return "Rojo";
   }
 
@@ -352,6 +408,7 @@ export default function ResultadosVotacionPage() {
     if (id === 1) return "bg-green-500";
     if (id === 2) return "bg-yellow-400";
     if (id === 3) return "bg-blue-500";
+
     return "bg-red-500";
   }
 
@@ -381,7 +438,8 @@ export default function ResultadosVotacionPage() {
     return (
       <div className="mt-5 space-y-4">
         {grupos.map((grupo) => {
-          const resuelto = grupoDesempateResuelto(grupo);
+          const resuelto =
+            grupoDesempateResuelto(grupo);
 
           return (
             <div
@@ -401,11 +459,13 @@ export default function ResultadosVotacionPage() {
               <p className="mt-1 text-sm font-bold text-zinc-800">
                 {grupo.length} candidatos tienen{" "}
                 {grupo[0].votos}{" "}
-                {grupo[0].votos === 1 ? "voto" : "votos"}
+                {grupo[0].votos === 1
+                  ? "voto"
+                  : "votos"}
               </p>
 
               <div className="mt-3 space-y-2">
-                {grupo
+                {[...grupo]
                   .sort(
                     (a, b) =>
                       (a.desempate_orden ?? 999) -
@@ -445,9 +505,7 @@ export default function ResultadosVotacionPage() {
                         }
                         className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-black outline-none"
                       >
-                        <option value="">
-                          Orden
-                        </option>
+                        <option value="">Orden</option>
 
                         {Array.from(
                           { length: grupo.length },
