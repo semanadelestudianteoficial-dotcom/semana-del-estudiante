@@ -19,6 +19,9 @@ type Props = {
   puntosCuarto: number;
 };
 
+const NO_PRESENTO = 5;
+const PENALIZACION_NO_PRESENTO = -300;
+
 export default function ResultadoForm({
   equipos,
   juegoId,
@@ -36,10 +39,18 @@ export default function ResultadoForm({
 
   useEffect(() => {
     async function cargarResultadoExistente() {
-      const { data } = await supabase
+      setCargando(true);
+
+      const { data, error } = await supabase
         .from("resultados")
         .select("equipo_id, posicion, puntos")
         .eq("juego_id", juegoId);
+
+      if (error) {
+        setMensaje(`No se pudo cargar el resultado: ${error.message}`);
+        setCargando(false);
+        return;
+      }
 
       if (data && data.length > 0) {
         if (esColecta) {
@@ -55,12 +66,22 @@ export default function ResultadoForm({
           const posicionesGuardadas: Record<number, number> = {};
 
           data.forEach((resultado) => {
-            posicionesGuardadas[resultado.equipo_id] =
-              Number(resultado.posicion);
+            const puntos = Number(resultado.puntos);
+            const posicion = Number(resultado.posicion);
+
+            // Si tiene puntaje negativo, fue marcado como "No presentó".
+            if (puntos < 0) {
+              posicionesGuardadas[resultado.equipo_id] = NO_PRESENTO;
+            } else {
+              posicionesGuardadas[resultado.equipo_id] = posicion;
+            }
           });
 
           setPosiciones(posicionesGuardadas);
         }
+      } else {
+        setPosiciones({});
+        setKilos({});
       }
 
       setCargando(false);
@@ -74,11 +95,23 @@ export default function ResultadoForm({
     if (posicion === 2) return puntosSegundo;
     if (posicion === 3) return puntosTercero;
     if (posicion === 4) return puntosCuarto;
+    if (posicion === NO_PRESENTO) return PENALIZACION_NO_PRESENTO;
 
     return 0;
   }
 
   function cambiarPosicion(equipoId: number, valor: string) {
+    if (valor === "") {
+      setPosiciones((actuales) => {
+        const nuevas = { ...actuales };
+        delete nuevas[equipoId];
+        return nuevas;
+      });
+
+      setMensaje("");
+      return;
+    }
+
     const posicion = Number(valor);
 
     setPosiciones((actuales) => ({
@@ -148,13 +181,21 @@ export default function ResultadoForm({
     );
 
     if (faltanPosiciones) {
-      setMensaje("Asigná una posición a los cuatro equipos.");
+      setMensaje(
+        "Asigná una posición o marcá No presentó a los cuatro equipos."
+      );
       return;
     }
 
-    const posicionesUnicas = new Set(posicionesElegidas);
+    // Solamente las posiciones 1, 2, 3 y 4 deben ser únicas.
+    // Puede haber más de un equipo que no se presente.
+    const posicionesCompetencia = posicionesElegidas.filter(
+      (posicion) => posicion !== NO_PRESENTO
+    );
 
-    if (posicionesUnicas.size !== equipos.length) {
+    const posicionesUnicas = new Set(posicionesCompetencia);
+
+    if (posicionesUnicas.size !== posicionesCompetencia.length) {
       setMensaje("No puede haber dos equipos en la misma posición.");
       return;
     }
@@ -162,13 +203,21 @@ export default function ResultadoForm({
     setGuardando(true);
 
     const filas = equipos.map((equipo) => {
-      const posicion = posiciones[equipo.id];
+      const seleccion = posiciones[equipo.id];
+      const noPresento = seleccion === NO_PRESENTO;
 
       return {
         juego_id: juegoId,
         equipo_id: equipo.id,
-        posicion,
-        puntos: puntosPorPosicion(posicion),
+
+        // La base actualmente espera una posición entre 1 y 4.
+        // Para "No presentó" guardamos 4 como posición técnica,
+        // pero el puntaje -300 permite identificarlo al volver a cargar.
+        posicion: noPresento ? 4 : seleccion,
+
+        puntos: noPresento
+          ? PENALIZACION_NO_PRESENTO
+          : puntosPorPosicion(seleccion),
       };
     });
 
@@ -206,11 +255,16 @@ export default function ResultadoForm({
 
       {equipos.map((equipo) => {
         const posicion = posiciones[equipo.id] ?? 0;
+        const noPresento = posicion === NO_PRESENTO;
 
         return (
           <div
             key={equipo.id}
-            className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
+            className={`rounded-3xl border p-5 shadow-sm ${
+              noPresento
+                ? "border-red-200 bg-red-50"
+                : "border-zinc-200 bg-white"
+            }`}
           >
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-4">
@@ -226,9 +280,17 @@ export default function ResultadoForm({
                     {equipo.nombre}
                   </p>
 
-                  <p className="text-xs font-semibold text-zinc-400">
+                  <p
+                    className={`text-xs font-semibold ${
+                      noPresento
+                        ? "text-red-600"
+                        : "text-zinc-400"
+                    }`}
+                  >
                     {esColecta
                       ? "Kilos aportados"
+                      : noPresento
+                      ? `${PENALIZACION_NO_PRESENTO} puntos · No presentó`
                       : posicion
                       ? `${puntosPorPosicion(posicion)} puntos`
                       : "Seleccionar posición"}
@@ -260,20 +322,32 @@ export default function ResultadoForm({
                   onChange={(e) =>
                     cambiarPosicion(equipo.id, e.target.value)
                   }
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-black outline-none"
+                  className={`rounded-xl border px-3 py-2 text-sm font-black outline-none ${
+                    noPresento
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-zinc-200 bg-white"
+                  }`}
                 >
                   <option value="">Posición</option>
+
                   <option value="1">
                     1.º — {puntosPrimero} pts
                   </option>
+
                   <option value="2">
                     2.º — {puntosSegundo} pts
                   </option>
+
                   <option value="3">
                     3.º — {puntosTercero} pts
                   </option>
+
                   <option value="4">
                     4.º — {puntosCuarto} pts
+                  </option>
+
+                  <option value={NO_PRESENTO}>
+                    No presentó — {PENALIZACION_NO_PRESENTO} pts
                   </option>
                 </select>
               )}
